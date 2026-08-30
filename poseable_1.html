@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poseable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blush:#FDEFF3;
+    --card:#FFFFFF;
+    --ink:#3B1B2C;
+    --ink-soft:#967182;
+    --magenta:#E4006F;
+    --mint:#5FCFB8;
+    --line:#F6DAE4;
+    --shadow:rgba(122,30,74,.18);
+    --display:"Fraunces",Georgia,serif;
+    --body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;min-height:100vh;
+    font-family:var(--body);line-height:1.5;color:var(--ink);
+    background:
+      radial-gradient(1100px 600px at 12% -8%, #FFE3EE 0%, transparent 60%),
+      radial-gradient(900px 500px at 105% 110%, #DDF5EF 0%, transparent 55%),
+      var(--blush);
+    display:flex;flex-direction:column;align-items:center;
+    padding:26px 14px 46px;
+  }
+
+  .masthead{text-align:center;margin-bottom:16px}
+  .wordmark{
+    font-family:var(--display);
+    font-variation-settings:"opsz" 120;
+    font-weight:700;font-size:clamp(34px,7vw,54px);
+    letter-spacing:-.02em;margin:0;
+  }
+  .tagline{margin:2px 0 0;color:var(--ink-soft);font-size:14px}
+
+  .phone{
+    width:100%;max-width:412px;height:min(84vh,780px);
+    background:#2A1220;border-radius:40px;padding:9px;
+    box-shadow:0 26px 60px -18px var(--shadow);
+  }
+  .screen{
+    position:relative;height:100%;background:var(--card);
+    border-radius:32px;overflow:hidden;display:flex;flex-direction:column;
+  }
+
+  /* ---------- app bar ---------- */
+  .appbar{
+    flex:none;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);
+  }
+  .who{
+    display:flex;align-items:center;gap:9px;
+    background:none;border:none;padding:5px 8px;border-radius:999px;
+    min-height:44px;max-width:75%;
+  }
+  .who:hover{background:#FCE8F0}
+  .who-name{
+    font-weight:600;font-size:15px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+
+  button{font:inherit;color:inherit;cursor:pointer}
+  .icon-btn{
+    min-width:44px;min-height:44px;display:grid;place-items:center;
+    background:none;border:none;padding:0;border-radius:50%;
+  }
+  .icon-btn:hover{background:#FCE8F0}
+  .pill{
+    border:1px solid var(--line);background:#FFF;border-radius:999px;
+    padding:9px 16px;font-size:14px;font-weight:600;min-height:40px;
+  }
+  .pill:hover{background:#FFF4F8}
+  .pill-solid{
+    border:none;background:var(--magenta);color:#fff;border-radius:999px;
+    padding:11px 20px;font-size:15px;font-weight:600;min-height:44px;
+  }
+  .pill-solid:hover{background:#C90062}
+  .pill-quiet{border:1px solid var(--line);background:#fff;color:var(--ink-soft)}
+  :focus-visible{outline:3px solid var(--mint);outline-offset:2px}
+
+  /* ---------- avatars ---------- */
+  .ava{
+    border-radius:50%;flex:none;display:grid;place-items:center;
+    color:#fff;font-weight:700;overflow:hidden;
+    background-size:cover;background-position:center;
+  }
+  .ava.ring{box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--magenta)}
+
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  /* ---------- feed ---------- */
+  .card{border-bottom:8px solid #FCF2F6}
+  .card-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
+  .card-head b{font-size:14px}
+  .card-head .sub{font-size:12px;color:var(--ink-soft)}
+  .card-head button{background:none;border:none;padding:0;text-align:left;display:flex;align-items:center;gap:10px;flex:1}
+  .card img.shot{width:100%;display:block;background:#FBEEF4}
+  .actions{display:flex;align-items:center;gap:2px;padding:6px 6px}
+  .heart.on svg{fill:var(--magenta);stroke:var(--magenta)}
+  .likes-line{padding:0 14px;font-size:14px;font-weight:600}
+  .caption{padding:5px 14px 0;font-size:14px;margin:0}
+  .caption b{margin-right:6px}
+  .mini-comments{padding:4px 14px 0;display:grid;gap:2px}
+  .mini-comments p{margin:0;font-size:14px}
+  .mini-comments b{margin-right:6px;font-size:13px}
+  .more-link{
+    background:none;border:none;padding:4px 14px 0;
+    color:var(--ink-soft);font-size:13px;
+  }
+  .stamp{padding:6px 14px 12px;font-size:11px;color:var(--ink-soft);margin:0}
+
+  .photo-wrap{position:relative}
+  .burst{
+    position:absolute;top:50%;left:50%;translate:-50% -50%;
+    font-size:88px;opacity:0;pointer-events:none;
+  }
+  .burst.pop{animation:pop .8s ease-out}
+  @keyframes pop{0%{opacity:0;scale:.4}18%{opacity:1;scale:1.15}45%{scale:1}100%{opacity:0;scale:1.1}}
+
+  /* ---------- profile ---------- */
+  .profile{padding:16px 14px 6px}
+  .profile-top{display:flex;align-items:center;gap:18px}
+  .stats{display:flex;gap:20px;flex:1}
+  .stat b{display:block;font-size:17px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--ink-soft)}
+  .display-name{
+    font-family:var(--display);font-variation-settings:"opsz" 40;
+    font-size:19px;font-weight:600;margin:14px 0 0;
+  }
+  .handle-line{margin:0;font-size:13px;color:var(--ink-soft)}
+  .bio{margin:4px 0 0;font-size:14px;white-space:pre-wrap}
+  .profile-btns{display:flex;gap:8px;margin-top:12px}
+  .profile-btns .pill{flex:1}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:12px 3px 3px}
+  .tile{position:relative;aspect-ratio:1;border:none;padding:0;overflow:hidden;background:#F7E7EE;display:block}
+  .tile img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile-likes{
+    position:absolute;inset:auto 0 0 0;padding:16px 6px 5px;
+    background:linear-gradient(transparent,rgba(59,27,44,.55));
+    color:#fff;font-size:12px;font-weight:600;opacity:0;transition:opacity .15s;
+  }
+  .tile:hover .tile-likes,.tile:focus-visible .tile-likes{opacity:1}
+
+  .empty{text-align:center;padding:40px 30px;color:var(--ink-soft)}
+  .empty strong{
+    display:block;font-family:var(--display);font-size:19px;color:var(--ink);
+    font-variation-settings:"opsz" 40;margin-bottom:4px;
+  }
+
+  /* ---------- tab bar ---------- */
+  .tabs{
+    flex:none;display:flex;border-top:1px solid var(--line);background:var(--card);
+  }
+  .tab{
+    flex:1;min-height:52px;background:none;border:none;
+    display:grid;place-items:center;gap:2px;color:var(--ink-soft);
+  }
+  .tab.on{color:var(--magenta)}
+  .tab span{font-size:11px;font-weight:600}
+
+  /* ---------- sheets ---------- */
+  .sheet{position:absolute;inset:0;background:var(--card);display:none;flex-direction:column;z-index:5}
+  .sheet.open{display:flex;animation:slide .22s ease-out}
+  @keyframes slide{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+  .sheet-bar{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .sheet-bar h2{font-size:16px;margin:0;flex:1;font-weight:600}
+  .sheet-body{flex:1;overflow-y:auto}
+
+  .comments{border-top:1px solid var(--line);padding:12px 14px 8px;display:grid;gap:12px}
+  .comment{display:flex;gap:10px;align-items:flex-start}
+  .comment p{margin:0;font-size:14px}
+  .comment b{font-size:13px}
+  .no-comments{color:var(--ink-soft);font-size:14px;margin:0}
+
+  .composer{flex:none;padding:8px 12px 10px;border-top:1px solid var(--line);background:var(--card)}
+  .composer-row{display:flex;gap:8px;align-items:center}
+  .as-line{font-size:11px;color:var(--ink-soft);padding:0 4px 5px}
+  input[type=text],textarea{
+    font:inherit;color:inherit;width:100%;
+    border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#FFF9FB;
+  }
+  textarea{resize:none}
+  .composer input{border-radius:999px}
+
+  .form{padding:16px;display:grid;gap:14px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+  .preview{width:100%;border-radius:18px;display:block;background:#FBEEF4}
+  .avatar-picker{display:flex;align-items:center;gap:14px}
+
+  /* ---------- account switcher ---------- */
+  .acct-list{padding:8px 0}
+  .acct{
+    width:100%;display:flex;align-items:center;gap:12px;
+    background:none;border:none;padding:12px 16px;text-align:left;min-height:60px;
+  }
+  .acct:hover{background:#FFF4F8}
+  .acct-info{flex:1;min-width:0}
+  .acct-info b{display:block;font-size:15px}
+  .acct-info span{font-size:12px;color:var(--ink-soft)}
+  .check{color:var(--magenta);font-size:19px;font-weight:700}
+  .add-row{padding:10px 16px 20px}
+  .add-row .pill{width:100%}
+
+  .toast{
+    position:absolute;left:50%;bottom:66px;translate:-50% 0;
+    background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;
+    font-size:13px;z-index:9;opacity:0;transition:opacity .25s;pointer-events:none;
+    max-width:88%;text-align:center;
+  }
+  .toast.show{opacity:1}
+  .notice{flex:none;background:#FFF3D6;color:#6B4E00;font-size:12px;padding:8px 14px;text-align:center}
+  .hidden{display:none !important}
+  .footnote{margin-top:16px;font-size:13px;color:var(--ink-soft);text-align:center;max-width:412px}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <h1 class="wordmark">Poseable</h1>
+  <p class="tagline">where the dolls post</p>
+</div>
+
+<div class="phone">
+  <div class="screen">
+
+    <div class="appbar">
+      <button class="who" id="whoBtn" aria-label="Switch doll account">
+        <span class="ava ring" id="whoAva" style="width:30px;height:30px;font-size:14px"></span>
+        <span class="who-name" id="whoName">…</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#967182" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <button class="icon-btn" id="newPostBtn" aria-label="Add a photo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="1.8" stroke-linecap="round">
+          <rect x="3" y="6.5" width="18" height="14" rx="3"/>
+          <path d="M8.5 6.5l1.4-2.5h4.2l1.4 2.5"/>
+          <circle cx="12" cy="13.5" r="3.6"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="notice hidden" id="notice">Saving is off in this preview — download the file to keep your posts.</div>
+
+    <div class="scroll" id="scroll"></div>
+
+    <div class="tabs">
+      <button class="tab on" id="tabFeed">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V20H4z"/></svg>
+        <span>Feed</span>
+      </button>
+      <button class="tab" id="tabProfile">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1-4 4-6 7.5-6s6.5 2 7.5 6"/></svg>
+        <span>Profile</span>
+      </button>
+    </div>
+
+    <!-- account switcher -->
+    <div class="sheet" id="switchSheet">
+      <div class="sheet-bar">
+        <button class="icon-btn" data-close="switchSheet" aria-label="Close">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <h2>Your dolls</h2>
+      </div>
+      <div class="sheet-body">
+        <div class="acct-list" id="acctList"></div>
+        <div class="add-row"><button class="pill" id="addAcctBtn">+ Add a doll</button></div>
+      </div>
+    </div>
+
+    <!-- post detail -->
+    <div class="sheet" id="postSheet">
+      <div class="sheet-bar">
+        <button class="icon-btn" data-close="postSheet" aria-label="Back">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2>Post</h2>
+        <button class="icon-btn hidden" id="deleteBtn" aria-label="Delete this post">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#967182" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body" id="postBody"></div>
+      <div class="composer">
+        <p class="as-line" id="asLine"></p>
+        <div class="composer-row">
+          <input type="text" id="commentInput" placeholder="Add a comment…" aria-label="Add a comment">
+          <button class="pill" id="commentSend">Post</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- new post -->
+    <div class="sheet" id="newSheet">
+      <div class="sheet-bar">
+        <button class="icon-btn" id="newCancel" aria-label="Cancel">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <h2 id="newTitle">New post</h2>
+      </div>
+      <div class="sheet-body">
+        <div class="form">
+          <img class="preview" id="newPreview" alt="The photo you picked">
+          <div class="field">
+            <label for="newCaption">Caption</label>
+            <textarea id="newCaption" rows="3" placeholder="Beach day with the girls ☀️"></textarea>
+          </div>
+          <button class="pill-solid" id="shareBtn">Share photo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- edit / add doll -->
+    <div class="sheet" id="editSheet">
+      <div class="sheet-bar">
+        <button class="icon-btn" id="editCancel" aria-label="Cancel">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <h2 id="editTitle">Edit profile</h2>
+      </div>
+      <div class="sheet-body">
+        <div class="form">
+          <div class="avatar-picker">
+            <div class="ava" id="editAvatar" style="width:76px;height:76px;font-size:28px"></div>
+            <button class="pill" id="avatarBtn">Choose photo</button>
+          </div>
+          <div class="field">
+            <label for="editName">Name</label>
+            <input type="text" id="editName" placeholder="Mia Rose">
+          </div>
+          <div class="field">
+            <label for="editHandle">Username</label>
+            <input type="text" id="editHandle" placeholder="mia.rose">
+          </div>
+          <div class="field">
+            <label for="editBio">Bio</label>
+            <textarea id="editBio" rows="3" placeholder="19 • fashion • my dog Biscuit runs this account"></textarea>
+          </div>
+          <button class="pill-solid" id="saveAcct">Save</button>
+          <button class="pill pill-quiet hidden" id="removeAcct">Remove this doll</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<p class="footnote">Everything stays on your device. Nothing is posted anywhere real.</p>
+
+<input type="file" id="fileInput" accept="image/*" class="hidden">
+<input type="file" id="avatarInput" accept="image/*" class="hidden">
+
+<script>
+/* ==========================================================
+   Poseable — a pretend photo app for dolls.
+   Several doll accounts share one feed and comment on
+   each other's posts. All of it runs in this one file.
+   ========================================================== */
+
+/* ---------- fake followers who react to new posts ---------- */
+const FRIENDS = [
+  {user:'rollerskate.rue', color:'#E4006F'},
+  {user:'glitter.gem',     color:'#7A5AF8'},
+  {user:'pool.party.pia',  color:'#2AA7E0'},
+  {user:'sunset.sasha',    color:'#F2874A'},
+  {user:'tiny.dog.deluxe', color:'#3FAE84'},
+  {user:'vinyl.vera',      color:'#B4407A'},
+  {user:'beachhouse.bree', color:'#0FA3A3'},
+  {user:'miss.marisol',    color:'#D4145A'},
+  {user:'cupcake.coco',    color:'#EE8FB0'},
+  {user:'skatepark.skye',  color:'#6B7CF0'}
+];
+
+const COMMENT_POOL = [
+  'obsessed with this outfit','the SHOES though','hair goals honestly',
+  'ok but the pose??','wait this is so pretty','main character energy ✨',
+  'saving this for inspo','this belongs in a magazine','the color combo!!',
+  'teach me how to pose like this','stunning as always','i need this whole look',
+  'literally perfect','my favorite post of yours','coming over to borrow that jacket',
+  'the lighting here 😍'
+];
+
+const ACCT_COLORS = ['#E4006F','#7A5AF8','#0FA3A3','#F2874A','#3FAE84','#6B7CF0','#D4145A','#2AA7E0'];
+
+/* ---------- state ---------- */
+let accounts = [];        // every doll account
+let posts = [];           // newest first, shared across accounts
+let activeId = null;      // whose account is currently in use
+let viewingId = null;     // whose profile the Profile tab is showing
+let tab = 'feed';
+let openPostId = null;
+let pendingPhoto = null;
+let pendingAvatar = null;
+let editingId = null;     // account being edited, or null when adding a new one
+
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const randInt = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const commas = n => n.toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const acctById = id => accounts.find(a => a.id === id);
+const active = () => acctById(activeId) || accounts[0];
+
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* An avatar as an HTML string: photo if there is one, initial if not. */
+function avaHtml(acc, size, extra){
+  const style = acc && acc.avatar
+    ? `background-image:url('${acc.avatar}')`
+    : `background:${(acc && acc.color) || '#C9A2B4'}`;
+  const letter = acc && acc.avatar ? '' : esc(((acc && acc.name && acc.name[0]) || '?').toUpperCase());
+  return `<span class="ava ${extra||''}" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px;${style}">${letter}</span>`;
+}
+
+/* Comments come from doll accounts or from the fake followers. */
+function commenterOf(c){
+  if(c.authorId){
+    const acc = acctById(c.authorId);
+    if(acc) return {name:acc.handle, color:acc.color, avatar:acc.avatar};
+  }
+  return {name:c.user, color:c.color, avatar:null};
+}
+
+/* Shrink a photo so it saves quickly and stays small. */
+function compress(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('not an image'));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- saving ----------
+   Two places this app can save to, depending on where it is running:
+   the Claude artifact store, or the browser's own storage on a real
+   website. If neither is available, posts last until the page reloads. */
+const store = {
+  mode:'none',
+  start(){
+    if(window.storage && typeof window.storage.get === 'function'){
+      this.mode = 'artifact';
+      return;
+    }
+    try {                                   // a private window can block this
+      window.localStorage.setItem('poseable:probe', '1');
+      window.localStorage.removeItem('poseable:probe');
+      this.mode = 'local';
+    } catch(e){ this.mode = 'none'; }
+  },
+  async get(key){
+    if(this.mode === 'artifact'){
+      const row = await window.storage.get(key);
+      return row ? row.value : null;
+    }
+    if(this.mode === 'local') return window.localStorage.getItem('poseable:'+key);
+    return null;
+  },
+  async set(key, raw){
+    if(this.mode === 'artifact') return window.storage.set(key, raw);
+    if(this.mode === 'local') window.localStorage.setItem('poseable:'+key, raw);
+  },
+  async del(key){
+    if(this.mode === 'artifact') return window.storage.delete(key);
+    if(this.mode === 'local') window.localStorage.removeItem('poseable:'+key);
+  }
+};
+
+async function put(key, value){
+  if(store.mode === 'none') return;
+  try { await store.set(key, JSON.stringify(value)); }
+  catch(e){
+    console.error('save failed:', key, e);
+    toast('Out of saving room. Delete an old post to make space.');
+  }
+}
+const saveAccounts = () => Promise.all([
+  put('accounts', accounts),
+  put('active-account', activeId)
+]);
+const savePost  = post => Promise.all([put('post:'+post.id, post), put('post-index', posts.map(p=>p.id))]);
+const saveIndex = ()   => put('post-index', posts.map(p=>p.id));
+
+async function dropPost(id){
+  if(store.mode === 'none') return;
+  try { await store.del('post:'+id); } catch(e){}
+  saveIndex();
+}
+
+async function loadEverything(){
+  store.start();
+  if(store.mode === 'none'){ $('notice').classList.remove('hidden'); seedFirstAccount(); return; }
+
+  try {
+    const row = await store.get('accounts');
+    if(row) accounts = JSON.parse(row);
+  } catch(e){ /* nothing saved yet */ }
+
+  // Carry over a profile saved by the earlier single-account version.
+  if(!accounts.length){
+    try {
+      const old = await store.get('profile');
+      if(old){
+        const p = JSON.parse(old);
+        accounts = [{
+          id:'a1', name:p.name || 'My doll', handle:p.handle || 'my.doll',
+          bio:p.bio || '', avatar:p.avatar || null,
+          followers:p.followers || 1284, following:p.following || 312,
+          color:ACCT_COLORS[0]
+        }];
+      }
+    } catch(e){ /* nothing to carry over */ }
+  }
+
+  if(!accounts.length) seedFirstAccount();
+
+  try {
+    const row = await store.get('active-account');
+    if(row) activeId = JSON.parse(row);
+  } catch(e){}
+  if(!acctById(activeId)) activeId = accounts[0].id;
+
+  let ids = [];
+  try {
+    const row = await store.get('post-index');
+    if(row) ids = JSON.parse(row);
+  } catch(e){}
+
+  for(const id of ids){
+    try {
+      const row = await store.get('post:'+id);
+      if(row){
+        const post = JSON.parse(row);
+        if(!post.authorId) post.authorId = accounts[0].id; // from the older version
+        if(!Array.isArray(post.likedBy)) post.likedBy = post.liked ? [accounts[0].id] : [];
+        posts.push(post);
+      }
+    } catch(e){ /* skip a missing post */ }
+  }
+}
+
+function seedFirstAccount(){
+  accounts = [{
+    id:'a'+Date.now(), name:'My doll', handle:'my.doll',
+    bio:'Tap “Edit profile” to make this yours.',
+    avatar:null, followers:1284, following:312, color:ACCT_COLORS[0]
+  }];
+  activeId = accounts[0].id;
+}
+
+/* ---------- rendering ---------- */
+function renderAll(){
+  const me = active();
+  $('whoName').textContent = '@' + me.handle;
+  $('whoAva').style.cssText =
+    'width:30px;height:30px;font-size:13px;' +
+    (me.avatar ? `background-image:url('${me.avatar}')` : `background:${me.color}`);
+  $('whoAva').textContent = me.avatar ? '' : (me.name[0] || '?').toUpperCase();
+
+  $('tabFeed').classList.toggle('on', tab === 'feed');
+  $('tabProfile').classList.toggle('on', tab === 'profile');
+
+  if(tab === 'feed') renderFeed(); else renderProfile();
+}
+
+function renderFeed(){
+  const scroll = $('scroll');
+  if(!posts.length){
+    scroll.innerHTML = `<div class="empty">
+      <strong>The feed is empty</strong>
+      Tap the camera up top to post the first photo.
+    </div>`;
+    return;
+  }
+
+  scroll.innerHTML = posts.map(post => {
+    const author = acctById(post.authorId) || {name:'Someone', handle:'someone', color:'#C9A2B4'};
+    const liked = post.likedBy.includes(activeId);
+    const shown = post.comments.slice(-2).map(c => {
+      const who = commenterOf(c);
+      return `<p><b>${esc(who.name)}</b>${esc(c.text)}</p>`;
+    }).join('');
+
+    return `<article class="card" data-post="${post.id}">
+      <div class="card-head">
+        <button data-profile="${post.authorId}">
+          ${avaHtml(author, 36, 'ring')}
+          <span><b>${esc(author.handle)}</b><br><span class="sub">${esc(author.name)}</span></span>
+        </button>
+      </div>
+      <div class="photo-wrap" data-photo="${post.id}">
+        <img class="shot" src="${post.img}" alt="${esc(post.caption || 'A doll photo')}">
+        <span class="burst" aria-hidden="true">💗</span>
+      </div>
+      <div class="actions">
+        <button class="icon-btn heart ${liked?'on':''}" data-like="${post.id}" aria-pressed="${liked}" aria-label="Like">
+          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="1.8" stroke-linejoin="round">
+            <path d="M12 20s-7.2-4.4-9.1-8.4C1.3 8.2 3.2 4.8 6.6 4.8c2 0 3.4 1.2 4.2 2.4h2.4c.8-1.2 2.2-2.4 4.2-2.4 3.4 0 5.3 3.4 3.7 6.8C19.2 15.6 12 20 12 20z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" data-open="${post.id}" aria-label="Comments">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="1.8" stroke-linejoin="round">
+            <path d="M20.5 12c0 4.1-3.8 7.4-8.5 7.4-1 0-2-.2-2.9-.5L4 20.5l1.7-4A7 7 0 0 1 3.5 12c0-4.1 3.8-7.4 8.5-7.4s8.5 3.3 8.5 7.4z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="likes-line">${commas(post.likes)} likes</div>
+      ${post.caption ? `<p class="caption"><b>${esc(author.handle)}</b>${esc(post.caption)}</p>` : ''}
+      <div class="mini-comments">${shown}</div>
+      ${post.comments.length > 2 ? `<button class="more-link" data-open="${post.id}">View all ${post.comments.length} comments</button>` : ''}
+      <p class="stamp">${esc(post.date)}</p>
+    </article>`;
+  }).join('');
+}
+
+function renderProfile(){
+  const acc = acctById(viewingId) || active();
+  const mine = acc.id === activeId;
+  const theirs = posts.filter(p => p.authorId === acc.id);
+
+  const tiles = theirs.map(post => `
+    <button class="tile" data-open="${post.id}" aria-label="Open post">
+      <img src="${post.img}" alt="${esc(post.caption || 'A doll photo')}">
+      <span class="tile-likes">♥ ${commas(post.likes)}</span>
+    </button>`).join('');
+
+  $('scroll').innerHTML = `
+    <section class="profile">
+      <div class="profile-top">
+        ${avaHtml(acc, 84, 'ring')}
+        <div class="stats">
+          <div class="stat"><b>${commas(theirs.length)}</b><span>posts</span></div>
+          <div class="stat"><b>${commas(acc.followers)}</b><span>followers</span></div>
+          <div class="stat"><b>${commas(acc.following)}</b><span>following</span></div>
+        </div>
+      </div>
+      <p class="display-name">${esc(acc.name)}</p>
+      <p class="handle-line">@${esc(acc.handle)}</p>
+      ${acc.bio ? `<p class="bio">${esc(acc.bio)}</p>` : ''}
+      <div class="profile-btns">
+        ${mine
+          ? '<button class="pill" id="editBtn">Edit profile</button>'
+          : `<button class="pill" id="switchToThis">Post as ${esc(acc.name)}</button>`}
+      </div>
+    </section>
+    ${theirs.length
+      ? `<div class="grid">${tiles}</div>`
+      : `<div class="empty"><strong>No photos yet</strong>${mine ? 'Tap the camera up top to post one.' : 'This doll has not posted yet.'}</div>`}
+  `;
+
+  if(mine) $('editBtn').addEventListener('click', () => openEdit(acc.id));
+  else $('switchToThis').addEventListener('click', () => switchTo(acc.id));
+}
+
+function renderPostSheet(){
+  const post = posts.find(p => p.id === openPostId);
+  if(!post) return;
+  const author = acctById(post.authorId) || {name:'Someone', handle:'someone', color:'#C9A2B4'};
+  const liked = post.likedBy.includes(activeId);
+
+  $('deleteBtn').classList.toggle('hidden', post.authorId !== activeId);
+  $('asLine').textContent = 'Commenting as @' + active().handle;
+
+  const commentsHtml = post.comments.length
+    ? post.comments.map(c => {
+        const who = commenterOf(c);
+        return `<div class="comment">
+          ${avaHtml({name:who.name, color:who.color, avatar:who.avatar}, 32)}
+          <div><b>${esc(who.name)}</b><p>${esc(c.text)}</p></div>
+        </div>`;
+      }).join('')
+    : '<p class="no-comments">No comments yet.</p>';
+
+  $('postBody').innerHTML = `
+    <div class="card-head">
+      <button data-profile="${post.authorId}">
+        ${avaHtml(author, 36, 'ring')}
+        <span><b>${esc(author.handle)}</b><br><span class="sub">${esc(author.name)}</span></span>
+      </button>
+    </div>
+    <div class="photo-wrap" data-photo="${post.id}">
+      <img class="shot" src="${post.img}" alt="${esc(post.caption || 'A doll photo')}">
+      <span class="burst" aria-hidden="true">💗</span>
+    </div>
+    <div class="actions">
+      <button class="icon-btn heart ${liked?'on':''}" data-like="${post.id}" aria-pressed="${liked}" aria-label="Like">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#3B1B2C" stroke-width="1.8" stroke-linejoin="round">
+          <path d="M12 20s-7.2-4.4-9.1-8.4C1.3 8.2 3.2 4.8 6.6 4.8c2 0 3.4 1.2 4.2 2.4h2.4c.8-1.2 2.2-2.4 4.2-2.4 3.4 0 5.3 3.4 3.7 6.8C19.2 15.6 12 20 12 20z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="likes-line">${commas(post.likes)} likes</div>
+    ${post.caption ? `<p class="caption"><b>${esc(author.handle)}</b>${esc(post.caption)}</p>` : ''}
+    <p class="stamp">${esc(post.date)}</p>
+    <div class="comments">${commentsHtml}</div>
+  `;
+}
+
+function renderSwitcher(){
+  $('acctList').innerHTML = accounts.map(acc => `
+    <button class="acct" data-switch="${acc.id}">
+      ${avaHtml(acc, 42, 'ring')}
+      <span class="acct-info">
+        <b>${esc(acc.name)}</b>
+        <span>@${esc(acc.handle)} · ${posts.filter(p=>p.authorId===acc.id).length} posts</span>
+      </span>
+      ${acc.id === activeId ? '<span class="check">✓</span>' : ''}
+    </button>`).join('');
+}
+
+/* ---------- actions ---------- */
+function toggleLike(post){
+  const i = post.likedBy.indexOf(activeId);
+  if(i === -1){ post.likedBy.push(activeId); post.likes++; }
+  else { post.likedBy.splice(i,1); post.likes--; }
+  savePost(post);
+  renderAll();
+  if($('postSheet').classList.contains('open')) renderPostSheet();
+}
+
+function popHeart(wrap){
+  const burst = wrap.querySelector('.burst');
+  if(!burst) return;
+  burst.classList.remove('pop');
+  void burst.offsetWidth;       // restart the animation
+  burst.classList.add('pop');
+}
+
+function openPost(id){
+  openPostId = id;
+  renderPostSheet();
+  $('postSheet').classList.add('open');
+  $('postBody').scrollTop = 0;
+}
+
+function showProfile(id){
+  viewingId = id;
+  tab = 'profile';
+  closeSheet($('postSheet'));
+  renderAll();
+  $('scroll').scrollTop = 0;
+}
+
+async function switchTo(id){
+  activeId = id;
+  viewingId = id;
+  await saveAccounts();
+  closeSheet($('switchSheet'));
+  renderAll();
+  toast('Now posting as @' + active().handle);
+}
+
+function closeSheet(el){ el.classList.remove('open'); }
+
+/* Friends notice a new post over the next few seconds. */
+function scheduleReactions(postId){
+  const chosen = [...FRIENDS].sort(() => Math.random()-0.5).slice(0, randInt(2,4));
+  chosen.forEach((friend, i) => {
+    setTimeout(() => {
+      const post = posts.find(p => p.id === postId);
+      if(!post) return;                        // deleted before this landed
+      post.comments.push({user:friend.user, color:friend.color, text:pick(COMMENT_POOL)});
+      post.likes += randInt(3, 40);
+      savePost(post);
+      renderAll();
+      if(openPostId === postId && $('postSheet').classList.contains('open')) renderPostSheet();
+      if(i === chosen.length-1) toast(chosen.length + ' friends commented');
+    }, 1400 + i*1500 + randInt(0,600));
+  });
+}
+
+/* ---------- event wiring: taps inside the scrolling area ---------- */
+function wireTaps(root){
+  let lastTap = 0;
+  root.addEventListener('click', e => {
+    const likeBtn = e.target.closest('[data-like]');
+    if(likeBtn){
+      const post = posts.find(p => p.id === likeBtn.dataset.like);
+      if(post) toggleLike(post);
+      return;
+    }
+    const openBtn = e.target.closest('[data-open]');
+    if(openBtn){ openPost(openBtn.dataset.open); return; }
+
+    const profBtn = e.target.closest('[data-profile]');
+    if(profBtn){ showProfile(profBtn.dataset.profile); return; }
+
+    const photo = e.target.closest('[data-photo]');
+    if(photo){
+      const now = Date.now();
+      if(now - lastTap < 320){
+        const post = posts.find(p => p.id === photo.dataset.photo);
+        if(post && !post.likedBy.includes(activeId)){
+          toggleLike(post);
+          // re-query: the list was just redrawn
+          const fresh = root.querySelector(`[data-photo="${post.id}"]`);
+          if(fresh) popHeart(fresh);
+        } else {
+          popHeart(photo);
+        }
+      }
+      lastTap = now;
+      return;
+    }
+
+    const switchBtn = e.target.closest('[data-switch]');
+    if(switchBtn){ switchTo(switchBtn.dataset.switch); return; }
+  });
+}
+wireTaps($('scroll'));
+wireTaps($('postBody'));
+wireTaps($('acctList'));
+
+/* ---------- tabs and switcher ---------- */
+$('tabFeed').addEventListener('click', () => { tab='feed'; renderAll(); $('scroll').scrollTop=0; });
+$('tabProfile').addEventListener('click', () => { tab='profile'; viewingId=activeId; renderAll(); $('scroll').scrollTop=0; });
+
+$('whoBtn').addEventListener('click', () => { renderSwitcher(); $('switchSheet').classList.add('open'); });
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeSheet($(btn.dataset.close)));
+});
+
+/* ---------- posting a photo ---------- */
+$('newPostBtn').addEventListener('click', () => $('fileInput').click());
+
+$('fileInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try {
+    pendingPhoto = await compress(file, 1000, 0.72);
+    $('newPreview').src = pendingPhoto;
+    $('newCaption').value = '';
+    $('newTitle').textContent = 'New post as @' + active().handle;
+    $('newSheet').classList.add('open');
+  } catch(err){
+    toast('That file would not open as a photo. Try a JPG or PNG.');
+  }
+});
+
+$('newCancel').addEventListener('click', () => { pendingPhoto = null; closeSheet($('newSheet')); });
+
+$('shareBtn').addEventListener('click', async () => {
+  if(!pendingPhoto) return;
+  const post = {
+    id:'p'+Date.now(),
+    authorId:activeId,
+    img:pendingPhoto,
+    caption:$('newCaption').value.trim(),
+    likes:randInt(48, 620),
+    likedBy:[],
+    comments:[],
+    date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
+  };
+  posts.unshift(post);
+  pendingPhoto = null;
+
+  active().followers += randInt(3, 14);
+  await savePost(post);
+  await saveAccounts();
+
+  closeSheet($('newSheet'));
+  tab = 'feed';
+  renderAll();
+  $('scroll').scrollTop = 0;
+  toast('Posted');
+  scheduleReactions(post.id);
+});
+
+/* ---------- commenting ---------- */
+$('commentSend').addEventListener('click', sendComment);
+$('commentInput').addEventListener('keydown', e => { if(e.key === 'Enter') sendComment(); });
+
+function sendComment(){
+  const input = $('commentInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const post = posts.find(p => p.id === openPostId);
+  if(!post) return;
+  post.comments.push({authorId:activeId, text});
+  input.value = '';
+  savePost(post);
+  renderPostSheet();
+  renderAll();
+}
+
+$('deleteBtn').addEventListener('click', () => {
+  if(!confirm('Delete this post? It cannot be undone.')) return;
+  const id = openPostId;
+  posts = posts.filter(p => p.id !== id);
+  dropPost(id);
+  closeSheet($('postSheet'));
+  renderAll();
+  toast('Post deleted');
+});
+
+/* ---------- editing and adding dolls ---------- */
+function openEdit(id){
+  editingId = id;                       // null means we are adding a new doll
+  const acc = id ? acctById(id) : null;
+  $('editTitle').textContent = acc ? 'Edit profile' : 'Add a doll';
+  $('editName').value = acc && acc.name !== 'My doll' ? acc.name : '';
+  $('editHandle').value = acc && acc.handle !== 'my.doll' ? acc.handle : '';
+  $('editBio').value = acc && !acc.bio.startsWith('Tap “Edit') ? acc.bio : '';
+  pendingAvatar = null;
+  paintEditAvatar(acc);
+  $('removeAcct').classList.toggle('hidden', !acc || accounts.length < 2);
+  $('editSheet').classList.add('open');
+}
+
+function paintEditAvatar(acc){
+  const el = $('editAvatar');
+  const src = pendingAvatar || (acc && acc.avatar);
+  const color = (acc && acc.color) || ACCT_COLORS[accounts.length % ACCT_COLORS.length];
+  el.style.cssText = 'width:76px;height:76px;font-size:28px;' +
+    (src ? `background-image:url('${src}')` : `background:${color}`);
+  el.textContent = src ? '' : (($('editName').value.trim()[0]) || '?').toUpperCase();
+}
+
+$('addAcctBtn').addEventListener('click', () => { closeSheet($('switchSheet')); openEdit(null); });
+$('editCancel').addEventListener('click', () => { pendingAvatar = null; closeSheet($('editSheet')); });
+$('avatarBtn').addEventListener('click', () => $('avatarInput').click());
+$('editName').addEventListener('input', () => paintEditAvatar(editingId ? acctById(editingId) : null));
+
+$('avatarInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try {
+    pendingAvatar = await compress(file, 300, 0.8);
+    paintEditAvatar(editingId ? acctById(editingId) : null);
+  } catch(err){
+    toast('That file would not open as a photo. Try a JPG or PNG.');
+  }
+});
+
+$('saveAcct').addEventListener('click', async () => {
+  const name = $('editName').value.trim();
+  const handle = $('editHandle').value.trim().replace(/^@/, '').replace(/\s+/g, '.');
+  const bio = $('editBio').value.trim();
+
+  if(editingId){
+    const acc = acctById(editingId);
+    if(name) acc.name = name;
+    if(handle) acc.handle = handle;
+    acc.bio = bio;
+    if(pendingAvatar) acc.avatar = pendingAvatar;
+  } else {
+    if(!name && !handle){ toast('Give her a name first'); return; }
+    const acc = {
+      id:'a'+Date.now(),
+      name:name || handle,
+      handle:handle || name.toLowerCase().replace(/\s+/g,'.'),
+      bio, avatar:pendingAvatar || null,
+      followers:randInt(220, 2400),
+      following:randInt(180, 460),
+      color:ACCT_COLORS[accounts.length % ACCT_COLORS.length]
+    };
+    accounts.push(acc);
+    activeId = acc.id;
+    viewingId = acc.id;
+  }
+
+  pendingAvatar = null;
+  await saveAccounts();
+  closeSheet($('editSheet'));
+  tab = 'profile';
+  renderAll();
+  toast(editingId ? 'Profile saved' : 'Now posting as @' + active().handle);
+});
+
+$('removeAcct').addEventListener('click', async () => {
+  const acc = acctById(editingId);
+  if(!acc) return;
+  const theirs = posts.filter(p => p.authorId === acc.id);
+  const warning = theirs.length
+    ? `Remove ${acc.name} and her ${theirs.length} post${theirs.length>1?'s':''}? This cannot be undone.`
+    : `Remove ${acc.name}? This cannot be undone.`;
+  if(!confirm(warning)) return;
+
+  for(const p of theirs) await dropPost(p.id);
+  posts = posts.filter(p => p.authorId !== acc.id);
+  accounts = accounts.filter(a => a.id !== acc.id);
+  if(activeId === acc.id) activeId = accounts[0].id;
+  viewingId = activeId;
+
+  await saveAccounts();
+  await saveIndex();
+  closeSheet($('editSheet'));
+  renderAll();
+  toast(acc.name + ' removed');
+});
+
+/* ---------- start ---------- */
+(async function start(){
+  await loadEverything();
+  viewingId = activeId;
+  renderAll();
+})();
+</script>
+</body>
+</html>
