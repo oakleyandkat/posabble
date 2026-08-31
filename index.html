@@ -181,6 +181,14 @@
   .comment p{margin:0;font-size:14px}
   .comment b{font-size:13px}
   .no-comments{color:var(--ink-soft);font-size:14px;margin:0}
+  .world{border-top:1px solid var(--line);margin:14px 16px 0;padding:14px 0 20px}
+  .world-title{margin:0 0 4px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .world-help{margin:0 0 10px;font-size:13px;color:var(--ink-soft);line-height:1.45}
+  .world-row{display:flex;gap:8px}
+  .world-row input{flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 11px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink-soft)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#3FAE84;flex:none}
+  .dot.off{background:#C9A9B8}
 
   .composer{flex:none;padding:8px 12px 10px;border-top:1px solid var(--line);background:var(--card)}
   .composer-row{display:flex;gap:8px;align-items:center}
@@ -276,6 +284,15 @@
       <div class="sheet-body">
         <div class="acct-list" id="acctList"></div>
         <div class="add-row"><button class="pill" id="addAcctBtn">+ Add a doll</button></div>
+        <div class="world hidden" id="worldBox">
+          <p class="world-title">This world <span class="dot" id="syncDot"></span></p>
+          <p class="world-help">Anyone who opens this link joins the same feed &mdash; every doll and every
+            post, on any device. Share the whole link, not just the site address.</p>
+          <div class="world-row">
+            <input type="text" id="worldLink" readonly aria-label="Link to this world">
+            <button class="pill" id="copyWorld">Copy</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -362,6 +379,16 @@
 <input type="file" id="avatarInput" accept="image/*" class="hidden">
 
 <script>
+/* ==========================================================
+   To turn on the shared world, paste your two Supabase values
+   below. Leave them blank and the app saves only to this
+   device, exactly the way it did before.
+   ========================================================== */
+const CLOUD = {
+  url:'',   // looks like https://something.supabase.co
+  key:''    // the key labelled "anon public"
+};
+
 /* ==========================================================
    Poseable — a pretend photo app for dolls.
    Several doll accounts share one feed and comment on
@@ -499,6 +526,167 @@ const store = {
   }
 };
 
+/* ---------- the shared world ----------
+   Every device that opens the same link lands in the same world.
+   The world code rides in the address after #w= and is the key to
+   that world, so the link is the thing worth guarding. Posts still
+   save to this device too, so the app works with the wifi off. */
+let cloudSeeded = false;   // true once the first download finishes
+let cloudWarned = false;
+
+const nowStamp = () => new Date().toISOString();
+
+const postRow = p => ({
+  id:p.id, room:cloud.room, author_id:p.authorId, img:p.img,
+  caption:p.caption, likes:p.likes, liked_by:p.likedBy,
+  comments:p.comments, date:p.date, deleted:false, updated_at:nowStamp()
+});
+const rowPost = r => ({
+  id:r.id, authorId:r.author_id, img:r.img, caption:r.caption || '',
+  likes:r.likes || 0, likedBy:r.liked_by || [], comments:r.comments || [],
+  date:r.date, _ts:r.updated_at
+});
+const acctRow = a => ({
+  id:a.id, room:cloud.room, name:a.name, handle:a.handle, bio:a.bio,
+  avatar:a.avatar, followers:a.followers, following:a.following,
+  color:a.color, deleted:false, updated_at:nowStamp()
+});
+const rowAcct = r => ({
+  id:r.id, name:r.name, handle:r.handle, bio:r.bio || '', avatar:r.avatar,
+  followers:r.followers || 0, following:r.following || 0,
+  color:r.color, _ts:r.updated_at
+});
+
+const cloud = {
+  on:false, room:null, timer:null, pulling:false,
+
+  start(){
+    if(!CLOUD.url || !CLOUD.key) return;
+    let room = new URLSearchParams(location.hash.slice(1)).get('w');
+    if(!room){
+      room = 'w' + Math.random().toString(36).slice(2,10)
+                 + Math.random().toString(36).slice(2,8);
+      history.replaceState(null, '', '#w=' + room);
+    }
+    this.room = room;
+    this.on = true;
+  },
+
+  link(){ return location.origin + location.pathname + '#w=' + this.room; },
+
+  async req(path, opts){
+    const r = await fetch(CLOUD.url.replace(/\/$/,'') + '/rest/v1/' + path, Object.assign({}, opts, {
+      headers:Object.assign({
+        apikey:CLOUD.key,
+        Authorization:'Bearer ' + CLOUD.key,
+        'Content-Type':'application/json',
+        'X-World':this.room,
+        Prefer:'resolution=merge-duplicates,return=minimal'
+      }, (opts && opts.headers) || {})
+    }));
+    if(!r.ok) throw new Error(r.status + ' ' + await r.text());
+    return r.status === 204 ? null : r.json();
+  },
+
+  async pushPost(post){
+    if(!this.on) return;
+    await this.req('posts', {method:'POST', body:JSON.stringify(postRow(post))});
+  },
+  async pushAccounts(){
+    if(!this.on || !accounts.length) return;
+    await this.req('accounts', {method:'POST', body:JSON.stringify(accounts.map(acctRow))});
+  },
+  async markGone(table, id){
+    if(!this.on) return;
+    await this.req(table + '?id=eq.' + encodeURIComponent(id), {
+      method:'PATCH',
+      body:JSON.stringify({deleted:true, updated_at:nowStamp()})
+    });
+  },
+
+  async pull(){
+    if(!this.on || this.pulling) return false;
+    this.pulling = true;
+    try {
+      const q = 'room=eq.' + encodeURIComponent(this.room) + '&deleted=is.false&select=*';
+      const [accRows, postRows] = await Promise.all([
+        this.req('accounts?' + q),
+        this.req('posts?' + q)
+      ]);
+      return mergeFromCloud(accRows || [], postRows || []);
+    } finally { this.pulling = false; }
+  }
+};
+
+/* Row by row, the newest edit wins. Anything this device made that
+   the server has not seen yet is kept and pushed up on the next save. */
+function mergeFromCloud(accRows, postRows){
+  let changed = false;
+
+  for(const row of accRows){
+    const incoming = rowAcct(row);
+    const mine = acctById(incoming.id);
+    if(!mine){ accounts.push(incoming); changed = true; }
+    else if(!mine._ts || incoming._ts > mine._ts){
+      Object.assign(mine, incoming); changed = true;
+    }
+  }
+
+  for(const row of postRows){
+    const incoming = rowPost(row);
+    const mine = posts.find(p => p.id === incoming.id);
+    if(!mine){ posts.push(incoming); changed = true; }
+    else if(!mine._ts || incoming._ts > mine._ts){
+      Object.assign(mine, incoming); changed = true;
+    }
+  }
+
+  // A post deleted on another device goes away here too. Posts that
+  // have never reached the server yet are left alone.
+  if(cloudSeeded){
+    const alive = new Set(postRows.map(r => r.id));
+    const before = posts.length;
+    posts = posts.filter(p => alive.has(p.id) || !p._ts);
+    if(posts.length !== before) changed = true;
+  }
+
+  posts.sort((a,b) => Number(b.id.slice(1)) - Number(a.id.slice(1)));
+  if(!acctById(activeId) && accounts.length) activeId = accounts[0].id;
+  return changed;
+}
+
+function cloudTrouble(err){
+  console.error('sync trouble:', err);
+  const dot = $('syncDot');
+  if(dot) dot.classList.add('off');
+  if(!cloudWarned){
+    cloudWarned = true;
+    toast('Cannot reach the shared world. Your posts are safe on this device.');
+  }
+}
+
+/* Check for new posts from other devices every few seconds. */
+function startPolling(){
+  if(cloud.timer) return;
+  cloud.timer = setInterval(async () => {
+    if(document.hidden) return;
+    try {
+      const changed = await cloud.pull();
+      const dot = $('syncDot');
+      if(dot) dot.classList.remove('off');
+      if(!changed) return;
+      if(!typingNow()) renderAll();
+      if(openPostId && posts.find(p => p.id === openPostId)) renderPostSheet();
+    } catch(e){ cloudTrouble(e); }
+  }, 6000);
+}
+
+/* Don't redraw the screen out from under someone mid-sentence. */
+function typingNow(){
+  const el = document.activeElement;
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+}
+
 async function put(key, value){
   if(store.mode === 'none') return;
   try { await store.set(key, JSON.stringify(value)); }
@@ -507,14 +695,20 @@ async function put(key, value){
     toast('Out of saving room. Delete an old post to make space.');
   }
 }
-const saveAccounts = () => Promise.all([
-  put('accounts', accounts),
-  put('active-account', activeId)
-]);
-const savePost  = post => Promise.all([put('post:'+post.id, post), put('post-index', posts.map(p=>p.id))]);
-const saveIndex = ()   => put('post-index', posts.map(p=>p.id));
+const saveAccounts = () => {
+  const jobs = [put('accounts', accounts), put('active-account', activeId)];
+  if(cloud.on) jobs.push(cloud.pushAccounts().catch(cloudTrouble));
+  return Promise.all(jobs);
+};
+const savePost = post => {
+  const jobs = [put('post:'+post.id, post), put('post-index', posts.map(p=>p.id))];
+  if(cloud.on) jobs.push(cloud.pushPost(post).catch(cloudTrouble));
+  return Promise.all(jobs);
+};
+const saveIndex = () => put('post-index', posts.map(p=>p.id));
 
 async function dropPost(id){
+  if(cloud.on) cloud.markGone('posts', id).catch(cloudTrouble);
   if(store.mode === 'none') return;
   try { await store.del('post:'+id); } catch(e){}
   saveIndex();
@@ -570,6 +764,20 @@ async function loadEverything(){
       }
     } catch(e){ /* skip a missing post */ }
   }
+}
+
+/* Join the world, take what is already there, then hand over
+   anything this device made while it was on its own. */
+async function joinWorld(){
+  cloud.start();
+  if(!cloud.on) return;
+  try {
+    await cloud.pull();
+    cloudSeeded = true;
+    await cloud.pushAccounts();
+    for(const p of posts.slice()) if(!p._ts) await cloud.pushPost(p);
+    startPolling();
+  } catch(e){ cloudTrouble(e); }
 }
 
 function seedFirstAccount(){
@@ -1012,6 +1220,7 @@ $('removeAcct').addEventListener('click', async () => {
   if(!confirm(warning)) return;
 
   for(const p of theirs) await dropPost(p.id);
+  if(cloud.on) cloud.markGone('accounts', acc.id).catch(cloudTrouble);
   posts = posts.filter(p => p.authorId !== acc.id);
   accounts = accounts.filter(a => a.id !== acc.id);
   if(activeId === acc.id) activeId = accounts[0].id;
@@ -1027,7 +1236,20 @@ $('removeAcct').addEventListener('click', async () => {
 /* ---------- start ---------- */
 (async function start(){
   await loadEverything();
+  await joinWorld();
   viewingId = activeId;
+
+  if(cloud.on){
+    $('worldBox').classList.remove('hidden');
+    $('worldLink').value = cloud.link();
+    $('copyWorld').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(cloud.link()); toast('Link copied'); }
+      catch(e){ $('worldLink').select(); toast('Press Cmd-C to copy'); }
+    });
+    document.querySelector('.footnote').textContent =
+      'Shared with everyone who has this world link. Still nothing to do with the real Instagram.';
+  }
+
   renderAll();
 })();
 </script>
